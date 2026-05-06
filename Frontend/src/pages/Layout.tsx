@@ -1,4 +1,3 @@
-
 import { Outlet } from "react-router-dom"
 import Sidebar from "../components/Sidebar"
 import BotomNav from "../components/BotomNav"
@@ -15,4 +14,4 @@ const Layout = () => {
   )
 }
 
-export default Layout
+export default
