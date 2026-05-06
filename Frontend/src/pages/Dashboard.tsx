@@ -277,9 +277,11 @@ const Dashboard = () => {
         </Card>
 
         {/* Activity & intake graph */}
-        <Card className="col-span-2">
-          <h3 className="font-semibold text-slate-800 dark:text-white mb-2"> This Week's progress</h3>
-          <CaloriesChart />
+        <Card className="lg:col-span-2 col-span-1">
+          <h3 className="font-semibold text-slate-800 dark:text-white mb-2">This Week's progress</h3>
+          <div className="w-full h-[250px] sm:h-[300px]">
+            <CaloriesChart />
+          </div>
         </Card>
       </div>
     </div>
