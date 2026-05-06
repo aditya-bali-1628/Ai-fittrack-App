@@ -38,7 +38,7 @@ const Dashboard = () => {
   const motivation = getMotivationalMessage(totalCalories, totalActivityMinutes, DAILY_CALORIES_LIMIT)
 
   return (
-     <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col overflow-y-auto">
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col overflow-y-auto">
       <div className=" bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-6 pt-12 pb-20 rounded-b-3xl">
         <p>Welcom Back</p>
         <h1>{`Hi there!  ${user?.username}`}</h1>
@@ -50,7 +50,7 @@ const Dashboard = () => {
         </div>
       </div>
       { /*  Main Content  */}
-      <div className="px-4 -mt-10 space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:px-6 lg:max-w-4xl lg:mx-auto">
+      <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col overflow-y-auto">
         { /* calories card */}
         <Card className="shadow-lg col-span-2">
           <div className="flex items-center justify-between mb-4">
