@@ -19,6 +19,7 @@ const Profile = () => {
   const { user, logout, fetchUser, allFoodLogs, allActivityLogs } = useAppContext();
   const { theme } = useTheme()
 
+
   const [isEditing, setEditing] = useState(false)
 
   const [formData, setFormdata] = useState<ProfileFormData>({ age: 0, weight: 0, height: 0, goal: 'maintain', dailyCalorieIntake: 2000, dailyCalorieBurn: 400 })
@@ -56,7 +57,7 @@ const Profile = () => {
 
   const handleSave = async () => {
     try {
-      
+
       await api.put(`/api/users/${user?.id}`, formData)
       await fetchUser(user?.token || '')
       toast.success('Profile updated sucessfully')
@@ -66,6 +67,8 @@ const Profile = () => {
     }
     setEditing(false)
   }
+
+
   return (
     <div className=" min-h-screen bg-white dark:bg-slate-950">
       <div className=" bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-6 pt-12 transition-colors duration-200">
@@ -75,7 +78,7 @@ const Profile = () => {
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage your setting</p>
       </div>
 
-      <div className="p-4 lg:p-6 space-y-4 lg:grid grid-cols-2 gap-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:grid lg:grid-cols-2 lg:gap-6">
         {/* left col*/}
         <Card>
           <div className="flex items-center gap-4 mb-6">
@@ -99,7 +102,7 @@ const Profile = () => {
                 min={20} max={300} />
 
               <Input label="Height (cm)" type="number" value={formData.height}
-                onChange={(v) => setFormdata({ ...formData, weight: Number(v) })}
+                onChange={(v) => setFormdata({ ...formData, height: Number(v) })}
                 min={100} max={250} />
 
               <Select label="Fitness goal" value={formData.goal as string} onChange={(v) => setFormdata({ ...formData, goal: v as 'lose' | 'maintain' | 'gain' })} options={goalOptions} />
@@ -216,18 +219,15 @@ const Profile = () => {
 
           </Card>
           {/* toggle theme button for phone*/}
-          <div className="lg:hidden">
-            <button className="flex items-center gap-3 px-4 py-2.5 w-full text-slate-500 dark:text-slate-400 hover:bg-slate-50 
-            dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-colors duration-200 cursor-pointer">
-          {theme === 'light' ?<MoonIcon className="size-5" /> : <SunIcon className="size-5" /> }
-          <span className="text-base">{theme ===  'light'? 'Dark Mood' : 'Light Mode'}</span>
-            </button>
-          </div>
+          <div
+            className="lg:hidden"> <button className="flex items-center gap-3 px-4 py-2.5 w-full text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-colors duration-200 cursor-pointer">
+              {theme === 'light' ? <MoonIcon className="size-5" /> : <SunIcon className="size-5" />} <span className="text-base">
+                {theme === 'light' ? 'Dark Mood' : 'Light Mode'}</span> </button> </div>
           {/* Logout*/}
           <Button variant="danger"
-          onClick={logout}
-          className="w-full ring-red-300 hover:right-2">
-            <LogOutIcon className="size-4"/>
+            onClick={logout}
+            className="w-full ring-red-300 hover:right-2">
+            <LogOutIcon className="size-4" />
             Logout
           </Button>
         </div>
