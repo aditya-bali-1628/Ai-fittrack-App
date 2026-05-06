@@ -17,7 +17,7 @@ import api from "../configs/api";
 const Profile = () => {
 
   const { user, logout, fetchUser, allFoodLogs, allActivityLogs } = useAppContext();
-  const { theme } = useTheme()
+  const { theme, toggleTheme } = useTheme()
 
 
   const [isEditing, setEditing] = useState(false)
@@ -219,10 +219,17 @@ const Profile = () => {
 
           </Card>
           {/* toggle theme button for phone*/}
-          <div
-            className="lg:hidden"> <button className="flex items-center gap-3 px-4 py-2.5 w-full text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-colors duration-200 cursor-pointer">
-              {theme === 'light' ? <MoonIcon className="size-5" /> : <SunIcon className="size-5" />} <span className="text-base">
-                {theme === 'light' ? 'Dark Mood' : 'Light Mode'}</span> </button> </div>
+          <div className="lg:hidden">
+            <button
+              onClick={toggleTheme}  
+              className="flex items-center gap-3 px-4 py-2.5 w-full text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-colors duration-200 cursor-pointer"
+            >
+              {theme === 'light' ? <MoonIcon className="size-5" /> : <SunIcon className="size-5" />}
+              <span className="text-base">
+                {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+              </span>
+            </button>
+          </div>
           {/* Logout*/}
           <Button variant="danger"
             onClick={logout}

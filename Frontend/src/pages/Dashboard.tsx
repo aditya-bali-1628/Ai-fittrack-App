@@ -50,7 +50,7 @@ const Dashboard = () => {
         </div>
       </div>
       { /*  Main Content  */}
-      <div className="px-4 mb-6 sm:mb-8 md:mb-10 space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:px-20">
+      <div className="px-4 space-y-4 mb-6 sm:mb-8 md:mb-16 lg:grid lg:grid-cols-2 lg:gap-4 lg:px-20">
         { /* calories card */}
         <Card className="shadow-lg col-span-2">
           <div className="flex items-center justify-between mb-4">
