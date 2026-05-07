@@ -8,6 +8,7 @@ const userRoutes = require('./routes/users');
 const foodLogRoutes = require('./routes/foodLogs');
 const activityLogRoutes = require('./routes/activityLogs');
 const imageAnalysisRoutes = require('./routes/imageAnalysis');
+const aiRoutes = require('./routes/ai'); // ← NEW
 
 const path = require("path")
 
@@ -22,12 +23,13 @@ app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Routes  (matching exact paths the frontend uses)
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/food-logs', foodLogRoutes);
 app.use('/api/activity-logs', activityLogRoutes);
 app.use('/api/image-analysis', imageAnalysisRoutes);
+app.use('/api/ai', aiRoutes); // ← NEW
 
 app.use(express.static(path.join(_dirname, "Frontend/dist")));
 

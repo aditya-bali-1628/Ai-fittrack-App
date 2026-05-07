@@ -3,20 +3,20 @@ import type { FoodEntry, FormData } from "../types"
 import { useEffect, useState, useRef } from "react"
 import Card from "../assets/ui/Card"
 import Button from "../assets/ui/Button"
-import { mealColors, mealIcons, mealTypeOptions,  quickActivitiesFoodLog } from "../assets/assets"
+import { mealColors, mealIcons, mealTypeOptions, quickActivitiesFoodLog } from "../assets/assets"
 import { Loader2Icon, PlusIcon, SparkleIcon, Trash2Icon, UtensilsCrossedIcon } from "lucide-react"
 import Input from "../assets/ui/Input"
 import Select from "../assets/ui/Select"
-
 import toast from "react-hot-toast"
 import api from "../configs/api"
+import AICalorieEstimator from "../components/ai/AICalorieEstimator" // ← NEW
 
 const FoodLog = () => {
-
   const { allFoodLogs, setAllFoodLogs } = useAppContext()
 
   const [entries, setEntries] = useState<FoodEntry[]>([])
   const [showForm, seShowtForm] = useState(false)
+  const [showEstimator, setShowEstimator] = useState(false) // ← NEW
   const [formData, setFormdata] = useState<FormData>({
     name: "",
     calories: 0,
@@ -29,8 +29,7 @@ const FoodLog = () => {
   const today = new Date().toISOString().split('T')[0];
 
   const loadEntries = () => {
-    const todayEntries = allFoodLogs.filter((e: FoodEntry) => e.createdAt?.
-      split('T')[0] === today)
+    const todayEntries = allFoodLogs.filter((e: FoodEntry) => e.createdAt?.split('T')[0] === today)
     setEntries(todayEntries)
   }
 
@@ -49,25 +48,16 @@ const FoodLog = () => {
       console.log(error)
       toast.error(error?.response?.data?.error?.message || error?.message);
     }
-
-
-
-
   }
 
   const totalCalories = entries.reduce((sum, e) => sum + e.calories, 0);
 
+  const groupEntries: Record<'breakfast' | 'lunch' | 'dinner' | 'snack', FoodEntry[]> = entries.reduce((acc, entry) => {
+    if (!acc[entry.mealType]) acc[entry.mealType] = [];
+    acc[entry.mealType].push(entry);
+    return acc;
+  }, {} as Record<'breakfast' | 'lunch' | 'dinner' | 'snack', FoodEntry[]>)
 
-
-  //group entries by meal type
-
-  const groupEntries: Record<'breakfast' | 'lunch' | 'dinner' | 'snack',
-    FoodEntry[]> = entries.reduce((acc, entry) => {
-      if (!acc[entry.mealType]) acc[entry.mealType] = [];
-      acc[entry.mealType].push(entry);
-      return acc;
-
-    }, {} as Record<'breakfast' | 'lunch' | 'dinner' | 'snack', FoodEntry[]>)
   const handleQucikAdd = (activityName: string) => {
     setFormdata({ ...formData, mealType: activityName })
     seShowtForm(true)
@@ -76,7 +66,6 @@ const FoodLog = () => {
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    //Implement image  analysis 
     setLoading(true)
     const formData = new FormData();
     formData.append('image', file)
@@ -86,36 +75,25 @@ const FoodLog = () => {
       let mealType = '';
 
       const hour = new Date().getHours()
-      if (hour >= 0 && hour < 12) {
-        mealType = 'breakfast'
-      } else if (hour >= 12 && hour < 16) {
-        mealType = 'lunch';
-      } else if (hour >= 16 && hour < 18) {
-        mealType = 'snack'
-      } else if (hour >= 18 && hour < 24) {
-        mealType = 'dinner'
-      }
+      if (hour >= 0 && hour < 12) mealType = 'breakfast'
+      else if (hour >= 12 && hour < 16) mealType = 'lunch';
+      else if (hour >= 16 && hour < 18) mealType = 'snack'
+      else if (hour >= 18 && hour < 24) mealType = 'dinner'
 
-      if( !mealType || !result.name || !result.calories) {
+      if (!mealType || !result.name || !result.calories) {
         return toast.error('Missing data')
       }
 
-      // save the result to the databse  
-      const {data : newEntry} = await api.post('/api/food-logs',{data: {name: result.name, calories : result.calories, mealType}})
-     
+      const { data: newEntry } = await api.post('/api/food-logs', { data: { name: result.name, calories: result.calories, mealType } })
       setAllFoodLogs(prev => [...prev, newEntry])
 
-      // reset input
-      if(inputref.current){
-        inputref.current.value = ''
-      }
+      if (inputref.current) inputref.current.value = ''
     } catch (error: any) {
       console.log(error)
-        toast.error(error?.response?.data?.error?.message || error?.message);
-    } finally{
+      toast.error(error?.response?.data?.error?.message || error?.message);
+    } finally {
       setLoading(false)
     }
-
   }
 
   const handleDelete = async (documentId: string) => {
@@ -130,42 +108,41 @@ const FoodLog = () => {
     }
   }
 
+  // ← NEW: callback from AICalorieEstimator — fills the form
+  const handleUseEstimate = (name: string, calories: number) => {
+    const hour = new Date().getHours();
+    let mealType = '';
+    if (hour >= 0 && hour < 12) mealType = 'breakfast';
+    else if (hour >= 12 && hour < 16) mealType = 'lunch';
+    else if (hour >= 16 && hour < 18) mealType = 'snack';
+    else mealType = 'dinner';
+
+    setFormdata({ name, calories, mealType });
+    setShowEstimator(false);
+    seShowtForm(true);
+    toast.success(`Filled: ${name} — ${calories} kcal`);
+  };
+
   useEffect(() => {
-    (() => {
-      loadEntries();
-    })();
-
+    (() => { loadEntries(); })();
   }, [allFoodLogs])
-
-
-
-
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
-      {/* Header*/}
-      <div className="flex items-center justify-between px-4 py-4 md:px-6 md:py-5 bg-white dark:bg-slate-900  ">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-4 md:px-6 md:py-5 bg-white dark:bg-slate-900">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
-            Food Log
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            Track your daily intake
-          </p>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Food Log</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Track your daily intake</p>
         </div>
-
         <div className="text-right">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Today's Total
-          </p>
-          <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-            {totalCalories} kcal
-          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Today's Total</p>
+          <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{totalCalories} kcal</p>
         </div>
       </div>
 
       <div className="p-4 lg:p-6 space-y-4 lg:grid lg:grid-cols-2 lg:gap-6">
-        {!showForm && (
+        {!showForm && !showEstimator && (
           <div className="space-y-4">
             <Card>
               <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-3">Quick Add</h3>
@@ -174,7 +151,7 @@ const FoodLog = () => {
                   <button
                     onClick={() => handleQucikAdd(activity.name)}
                     className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 
-                dark:hover:bg-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 transition-colors"
+                    dark:hover:bg-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 transition-colors"
                     key={activity.name}>
                     {activity.emoji} {activity.name}
                   </button>
@@ -182,26 +159,45 @@ const FoodLog = () => {
               </div>
             </Card>
 
-            <Button className="w-full"
-              onClick={(() => seShowtForm(true))}>
+            <Button className="w-full" onClick={() => seShowtForm(true)}>
               <PlusIcon className="size-5" />
               Add Food Entry
             </Button>
-            <Button className="w-full"
-              onClick={() => { inputref.current?.click() }}>
+
+            {/* ─── AI ESTIMATOR BUTTON (NEW) ─── */}
+            <Button
+              className="w-full bg-purple-500 hover:bg-purple-600 border-purple-500"
+              onClick={() => setShowEstimator(true)}
+            >
+              <SparkleIcon className="size-5" />
+              AI Calorie Estimator
+            </Button>
+
+            <Button className="w-full" onClick={() => { inputref.current?.click() }}>
               <SparkleIcon className="size-5" />
               AI Food Snap
             </Button>
             <input type="file" onChange={handleImageChange} accept="image/**" hidden ref={inputref} />
             {loading && (
-              <div className="fixed inset-0 bg-slate-100/50 dark:bg-slate-900/50 backdrop:-blur flex items-center 
-              justify-center z-100">
+              <div className="fixed inset-0 bg-slate-100/50 dark:bg-slate-900/50 backdrop:-blur flex items-center justify-center z-100">
                 <Loader2Icon className="size-8 text-emerald-600 dark:text-emerald-400 animate-spin" />
               </div>
             )}
           </div>
+        )}
 
-
+        {/* ─── AI CALORIE ESTIMATOR PANEL (NEW) ─── */}
+        {showEstimator && (
+          <div className="space-y-3">
+            <AICalorieEstimator onUseEstimate={handleUseEstimate} />
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => setShowEstimator(false)}
+            >
+              Cancel
+            </Button>
+          </div>
         )}
 
         {showForm && (
@@ -219,14 +215,7 @@ const FoodLog = () => {
 
               <div className="flex gap-3 pt-2">
                 <Button className="flex-1" type="button" variant="secondary"
-                  onClick={() => {
-                    seShowtForm(false); setFormdata({
-                      name: '',
-                      calories: 0,
-                      mealType: ''
-
-                    })
-                  }}>
+                  onClick={() => { seShowtForm(false); setFormdata({ name: '', calories: 0, mealType: '' }) }}>
                   Cancel
                 </Button>
                 <Button type="submit" className="flex-1">
@@ -234,16 +223,10 @@ const FoodLog = () => {
                 </Button>
               </div>
             </form>
-
-
-
-
           </Card>
-        )
+        )}
 
-        }
-
-        {/* Entires List */}
+        {/* Entries List */}
         {entries.length === 0 ? (
           <Card className="text-center py-12">
             <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-start mx-auto mb-4">
@@ -252,16 +235,13 @@ const FoodLog = () => {
             <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-2">No food logged today</h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm">Start tracking your meals to stay on target</p>
           </Card>
-
-
         ) : (
           <div className="space-y-4">
             {['breakfast', 'lunch', 'dinner', 'snack'].map((mealType) => {
               const mealTypekey = mealType as keyof typeof groupEntries;
               if (!groupEntries[mealTypekey]) return null;
 
-              const MealIcon = mealIcons[mealTypekey];;
-
+              const MealIcon = mealIcons[mealTypekey];
               const mealCalories = groupEntries[mealTypekey].reduce((sum, e) => sum + e.calories, 0);
               return (
                 <Card key={mealType}>
@@ -272,50 +252,34 @@ const FoodLog = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold text-slate-800 dark:text-white capitalize">{mealType}</h3>
-                        <p className="text-sm text-slate-500  dark:text-slate-400">{groupEntries[mealTypekey].length} items</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{groupEntries[mealTypekey].length} items</p>
                       </div>
                     </div>
                     <p className="font-semibold text-sla dark:text-slate-200">{mealCalories}</p>
                   </div>
 
                   <div className="space-y-2">
-                    {groupEntries[mealTypekey].map((entry) => {
-                      return (
-                        <div key={entry.id} className="food-entry-item flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-
-                          <div className="flex-1">
-                            <p className="font-medium text-slate-700 dark:text-slate-200">
-                              {entry.name}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {entry.mealType}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                              {entry.calories} kcal
-                            </span>
-
-                            <button
-                              onClick={() => handleDelete(entry?.documentId || "")}
-                              className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            >
-                              <Trash2Icon className="w-4 h-4" />
-                            </button>
-                          </div>
-
+                    {groupEntries[mealTypekey].map((entry) => (
+                      <div key={entry.id} className="food-entry-item flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-700 dark:text-slate-200">{entry.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{entry.mealType}</p>
                         </div>
-                      );
-                    })}
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{entry.calories} kcal</span>
+                          <button
+                            onClick={() => handleDelete(entry?.documentId || "")}
+                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          >
+                            <Trash2Icon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </Card>
               )
-
-
-
             })}
-
           </div>
         )}
       </div>
