@@ -16,13 +16,13 @@ const upload = multer({
 });
 
 // ─────────────────────────────────────────────
-// Helper: call Llama 3.2 11B Vision via Groq
+// Helper: call Llama 3.2 11B Vision via OpenRouter
 // ─────────────────────────────────────────────
 async function callLlamaVision(base64Image, mediaType) {
   const res = await axios.post(
-    "https://api.groq.com/openai/v1/chat/completions",
+    "https://openrouter.ai/api/v1/chat/completions",
     {
-      model: "llama-3.2-11b-vision-preview",
+      model: "meta-llama/llama-3.2-11b-vision-instruct",
       messages: [
         {
           role: "user",
@@ -61,6 +61,8 @@ Rules:
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.GROQ_API_KEY_2}`,
+        "HTTP-Referer": process.env.CLIENT_URL || "http://localhost:3000",
+        "X-Title": "Food Calorie Analyzer",
       },
     }
   );
