@@ -30,6 +30,7 @@ async function callGemini(prompt, jsonMode = true) {
   return JSON.parse(clean);
 }
 
+
 // ─────────────────────────────────────────────
 // 1. AI COACH CHAT
 // POST /api/ai/chat
