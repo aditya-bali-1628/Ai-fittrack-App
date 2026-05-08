@@ -28,64 +28,61 @@ router.post("/", protect, upload.single("image"), async (req, res) => {
     const mediaType = req.file.mimetype;
 
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://api.x.ai/v1/chat/completions`,
       {
-        contents: [
+        model: "grok-2-vision",
+        messages: [
           {
-            parts: [
+            role: "user",
+            content: [
               {
-                inline_data: {
-                  mime_type: mediaType,
-                  data: base64Image,
+                type: "image_url",
+                image_url: {
+                  url: `data:${mediaType};base64,${base64Image}`,
+                  detail: "low",
                 },
               },
               {
-                text: `
-Analyze this food image.
+                type: "text",
+                text: `Analyze this food image.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON, no markdown, no explanation:
 {
   "name": "food name",
   "calories": 350
 }
 
 Rules:
-- No markdown
-- No explanation
-- Single food serving estimate
-- If not food:
-
+- calories is a number (kcal for a typical single serving)
+- If the image is not food, return:
 {
   "name": null,
   "calories": null
-}
-                `,
+}`,
               },
             ],
           },
         ],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 500,
-          responseMimeType: "application/json",
-        },
+        temperature: 0.1,
+        max_tokens: 200,
       },
       {
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.GEMINI_API_KEY}`,
         },
       }
     );
 
-    const text =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = response.data?.choices?.[0]?.message?.content || "";
 
-    console.log("Gemini raw response:", text);
+    console.log("Grok raw response:", text);
 
     let result;
 
     try {
-      result = JSON.parse(text);
+      const clean = text.replace(/```json\n?|```\n?/g, "").trim();
+      result = JSON.parse(clean);
     } catch {
       try {
         const match = text.match(/\{[\s\S]*\}/);
@@ -99,11 +96,7 @@ Rules:
       }
     }
 
-    if (
-      result.name === null ||
-      result.calories === null ||
-      !result.name
-    ) {
+    if (result.name === null || result.calories === null || !result.name) {
       return res.status(422).json({
         error: { message: "No food detected in image" },
       });
