@@ -16,26 +16,24 @@ const upload = multer({
 });
 
 // ─────────────────────────────────────────────
-// Helper: call Grok Vision
+// Helper: call Gemini Vision
+// (llama-3.3-70b-versatile does not support image input,
+//  so image analysis stays on Gemini)
 // ─────────────────────────────────────────────
-async function callGrokVision(base64Image, mediaType) {
+async function callGeminiVision(base64Image, mediaType) {
   const res = await axios.post(
-    `https://api.x.ai/v1/chat/completions`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
     {
-      model: "grok-2-vision-1212",
-      messages: [
+      contents: [
         {
-          role: "user",
-          content: [
+          parts: [
             {
-              type: "image_url",
-              image_url: {
-                url: `data:${mediaType};base64,${base64Image}`,
-                detail: "low",
+              inline_data: {
+                mime_type: mediaType,
+                data: base64Image,
               },
             },
             {
-              type: "text",
               text: `Analyze this food image.
 
 Return ONLY valid JSON, no markdown, no explanation:
@@ -55,18 +53,18 @@ Rules:
           ],
         },
       ],
-      temperature: 0.1,
-      max_tokens: 200,
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 200,
+        responseMimeType: "application/json",
+      },
     },
     {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.XAI_API_KEY}`,
-      },
+      headers: { "Content-Type": "application/json" },
     }
   );
 
-  return res.data?.choices?.[0]?.message?.content || "";
+  return res.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 // ─────────────────────────────────────────────
@@ -83,9 +81,9 @@ router.post("/", protect, upload.single("image"), async (req, res) => {
     const base64Image = req.file.buffer.toString("base64");
     const mediaType = req.file.mimetype;
 
-    const text = await callGrokVision(base64Image, mediaType);
+    const text = await callGeminiVision(base64Image, mediaType);
 
-    console.log("Grok Vision raw response:", text);
+    console.log("Gemini Vision raw response:", text);
 
     let result;
 

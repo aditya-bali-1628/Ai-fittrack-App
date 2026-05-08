@@ -7,21 +7,22 @@ const ActivityLog = require('../models/ActivityLog');
 const router = express.Router();
 
 // ─────────────────────────────────────────────
-// Helper: call Grok
+// Helper: call Groq (llama-3.3-70b-versatile)
 // ─────────────────────────────────────────────
-async function callGrok(prompt, jsonMode = true) {
+async function callGroq(prompt, jsonMode = true) {
   const res = await axios.post(
-    `https://api.x.ai/v1/chat/completions`,
+    `https://api.groq.com/openai/v1/chat/completions`,
     {
-      model: "grok-3-mini",
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.4,
       max_tokens: 1000,
+      ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
     },
     {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.XAI_API_KEY}`
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
       }
     }
   );
@@ -97,7 +98,7 @@ ${conversationHistory.map(h => `${h.role === 'user' ? 'User' : 'FitCoach'}: ${h.
 User: ${message}
 FitCoach:`;
 
-    const reply = await callGrok(fullPrompt, false);
+    const reply = await callGroq(fullPrompt, false);
 
     res.json({ reply });
   } catch (error) {
@@ -142,7 +143,7 @@ Rules:
 - protein/carbs/fat are in grams
 - If you truly cannot identify the food, set calories to null`;
 
-    const result = await callGrok(prompt);
+    const result = await callGroq(prompt);
 
     if (!result || result.calories === null) {
       return res.status(422).json({ error: { message: 'Could not estimate calories for this food. Try being more specific.' } });
@@ -210,7 +211,7 @@ Rules:
 - type: "success" if on track, "warning" if going over/under targets, "tip" for actionable advice, "motivation" if no data yet
 - Be specific, warm, and actionable`;
 
-    const result = await callGrok(prompt);
+    const result = await callGroq(prompt);
     res.json({ result });
   } catch (error) {
     console.error('Daily insight error:', error?.response?.data || error.message);
@@ -272,7 +273,7 @@ Rules:
 - Vary workout types (cardio, strength, flexibility)
 - estimatedCalories should match duration and intensity realistically`;
 
-    const result = await callGrok(prompt);
+    const result = await callGroq(prompt);
     res.json({ result });
   } catch (error) {
     console.error('Workout recommendation error:', error?.response?.data || error.message);
