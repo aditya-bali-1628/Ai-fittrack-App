@@ -16,24 +16,28 @@ const upload = multer({
 });
 
 // ─────────────────────────────────────────────
-// Helper: call Gemini Vision
-// (llama-3.3-70b-versatile does not support image input,
-//  so image analysis stays on Gemini)
+// Helper: call Claude Vision (Anthropic)
 // ─────────────────────────────────────────────
-async function callGeminiVision(base64Image, mediaType) {
+async function callClaudeVision(base64Image, mediaType) {
   const res = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    `https://api.anthropic.com/v1/messages`,
     {
-      contents: [
+      model: "claude-haiku-4-5",
+      max_tokens: 200,
+      messages: [
         {
-          parts: [
+          role: "user",
+          content: [
             {
-              inline_data: {
-                mime_type: mediaType,
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mediaType,
                 data: base64Image,
               },
             },
             {
+              type: "text",
               text: `Analyze this food image.
 
 Return ONLY valid JSON, no markdown, no explanation:
@@ -53,18 +57,17 @@ Rules:
           ],
         },
       ],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 200,
-        responseMimeType: "application/json",
-      },
     },
     {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
     }
   );
 
-  return res.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  return res.data?.content?.[0]?.text || "";
 }
 
 // ─────────────────────────────────────────────
@@ -81,9 +84,9 @@ router.post("/", protect, upload.single("image"), async (req, res) => {
     const base64Image = req.file.buffer.toString("base64");
     const mediaType = req.file.mimetype;
 
-    const text = await callGeminiVision(base64Image, mediaType);
+    const text = await callClaudeVision(base64Image, mediaType);
 
-    console.log("Gemini Vision raw response:", text);
+    console.log("Claude Vision raw response:", text);
 
     let result;
 
