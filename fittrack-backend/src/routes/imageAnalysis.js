@@ -15,36 +15,28 @@ const upload = multer({
   },
 });
 
-// POST /api/image-analysis
-router.post("/", protect, upload.single("image"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        error: { message: "No image provided" },
-      });
-    }
-
-    const base64Image = req.file.buffer.toString("base64");
-    const mediaType = req.file.mimetype;
-
-    const response = await axios.post(
-      `https://api.x.ai/v1/chat/completions`,
-      {
-        model: "grok-2-vision",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mediaType};base64,${base64Image}`,
-                  detail: "low",
-                },
+// ─────────────────────────────────────────────
+// Helper: call Grok Vision
+// ─────────────────────────────────────────────
+async function callGrokVision(base64Image, mediaType) {
+  const res = await axios.post(
+    `https://api.x.ai/v1/chat/completions`,
+    {
+      model: "grok-2-vision-1212",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mediaType};base64,${base64Image}`,
+                detail: "low",
               },
-              {
-                type: "text",
-                text: `Analyze this food image.
+            },
+            {
+              type: "text",
+              text: `Analyze this food image.
 
 Return ONLY valid JSON, no markdown, no explanation:
 {
@@ -59,24 +51,41 @@ Rules:
   "name": null,
   "calories": null
 }`,
-              },
-            ],
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 200,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GEMINI_API_KEY}`,
+            },
+          ],
         },
-      }
-    );
+      ],
+      temperature: 0.1,
+      max_tokens: 200,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.XAI_API_KEY}`,
+      },
+    }
+  );
 
-    const text = response.data?.choices?.[0]?.message?.content || "";
+  return res.data?.choices?.[0]?.message?.content || "";
+}
 
-    console.log("Grok raw response:", text);
+// ─────────────────────────────────────────────
+// POST /api/image-analysis
+// ─────────────────────────────────────────────
+router.post("/", protect, upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: { message: "No image provided" },
+      });
+    }
+
+    const base64Image = req.file.buffer.toString("base64");
+    const mediaType = req.file.mimetype;
+
+    const text = await callGrokVision(base64Image, mediaType);
+
+    console.log("Grok Vision raw response:", text);
 
     let result;
 

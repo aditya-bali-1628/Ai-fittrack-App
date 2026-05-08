@@ -7,9 +7,9 @@ const ActivityLog = require('../models/ActivityLog');
 const router = express.Router();
 
 // ─────────────────────────────────────────────
-// Helper: call Gemini
+// Helper: call Grok
 // ─────────────────────────────────────────────
-async function callGemini(prompt, jsonMode = true) {
+async function callGrok(prompt, jsonMode = true) {
   const res = await axios.post(
     `https://api.x.ai/v1/chat/completions`,
     {
@@ -21,7 +21,7 @@ async function callGemini(prompt, jsonMode = true) {
     {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GEMINI_API_KEY}`
+        'Authorization': `Bearer ${process.env.XAI_API_KEY}`
       }
     }
   );
@@ -49,7 +49,6 @@ router.post('/chat', protect, async (req, res) => {
     const { message, history = [] } = req.body;
     const user = req.user;
 
-    // Fetch last 7 days of logs for context
     const since = new Date();
     since.setDate(since.getDate() - 7);
 
@@ -89,8 +88,7 @@ RULES:
 - Never make up medical diagnoses; recommend consulting a doctor for medical issues
 - If they ask about logging food or activities, remind them they can do it in the app`;
 
-    // Build conversation for Gemini
-    const conversationHistory = history.slice(-10); // Keep last 10 turns
+    const conversationHistory = history.slice(-10);
     const fullPrompt = `${systemContext}
 
 CONVERSATION HISTORY:
@@ -99,7 +97,7 @@ ${conversationHistory.map(h => `${h.role === 'user' ? 'User' : 'FitCoach'}: ${h.
 User: ${message}
 FitCoach:`;
 
-    const reply = await callGemini(fullPrompt, false);
+    const reply = await callGrok(fullPrompt, false);
 
     res.json({ reply });
   } catch (error) {
@@ -144,7 +142,7 @@ Rules:
 - protein/carbs/fat are in grams
 - If you truly cannot identify the food, set calories to null`;
 
-    const result = await callGemini(prompt);
+    const result = await callGrok(prompt);
 
     if (!result || result.calories === null) {
       return res.status(422).json({ error: { message: 'Could not estimate calories for this food. Try being more specific.' } });
@@ -177,7 +175,6 @@ router.get('/daily-insight', protect, async (req, res) => {
     const totalCaloriesToday = todayFood.reduce((s, f) => s + f.calories, 0);
     const totalBurnedToday = todayActivity.reduce((s, a) => s + a.calories, 0);
 
-    // Weekly averages
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekFood = foodLogs.filter(f => f.createdAt >= weekAgo);
@@ -213,7 +210,7 @@ Rules:
 - type: "success" if on track, "warning" if going over/under targets, "tip" for actionable advice, "motivation" if no data yet
 - Be specific, warm, and actionable`;
 
-    const result = await callGemini(prompt);
+    const result = await callGrok(prompt);
     res.json({ result });
   } catch (error) {
     console.error('Daily insight error:', error?.response?.data || error.message);
@@ -229,7 +226,6 @@ router.get('/workout-recommendations', protect, async (req, res) => {
   try {
     const user = req.user;
 
-    // Get last 14 days of activity
     const since = new Date();
     since.setDate(since.getDate() - 14);
     const recentActivities = await ActivityLog.find({
@@ -276,7 +272,7 @@ Rules:
 - Vary workout types (cardio, strength, flexibility)
 - estimatedCalories should match duration and intensity realistically`;
 
-    const result = await callGemini(prompt);
+    const result = await callGrok(prompt);
     res.json({ result });
   } catch (error) {
     console.error('Workout recommendation error:', error?.response?.data || error.message);
