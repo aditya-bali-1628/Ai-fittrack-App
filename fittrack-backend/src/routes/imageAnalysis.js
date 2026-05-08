@@ -16,22 +16,25 @@ const upload = multer({
 });
 
 // ─────────────────────────────────────────────
-// Helper: call Gemini Vision
+// Helper: call Llama 3.2 11B Vision via Groq
 // ─────────────────────────────────────────────
-async function callGeminiVision(base64Image, mediaType) {
+async function callLlamaVision(base64Image, mediaType) {
   const res = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    "https://api.groq.com/openai/v1/chat/completions",
     {
-      contents: [
+      model: "llama-3.2-11b-vision-preview",
+      messages: [
         {
-          parts: [
+          role: "user",
+          content: [
             {
-              inline_data: {
-                mime_type: mediaType,
-                data: base64Image,
+              type: "image_url",
+              image_url: {
+                url: `data:${mediaType};base64,${base64Image}`,
               },
             },
             {
+              type: "text",
               text: `Analyze this food image.
 
 Return ONLY valid JSON, no markdown, no explanation:
@@ -51,18 +54,18 @@ Rules:
           ],
         },
       ],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 200,
-        responseMimeType: "application/json",
-      },
+      temperature: 0.1,
+      max_tokens: 200,
     },
     {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GROQ_API_KEY_2}`,
+      },
     }
   );
 
-  return res.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  return res.data?.choices?.[0]?.message?.content || "";
 }
 
 // ─────────────────────────────────────────────
@@ -79,9 +82,9 @@ router.post("/", protect, upload.single("image"), async (req, res) => {
     const base64Image = req.file.buffer.toString("base64");
     const mediaType = req.file.mimetype;
 
-    const text = await callGeminiVision(base64Image, mediaType);
+    const text = await callLlamaVision(base64Image, mediaType);
 
-    console.log("Gemini Vision raw response:", text);
+    console.log("Llama Vision raw response:", text);
 
     let result;
 
