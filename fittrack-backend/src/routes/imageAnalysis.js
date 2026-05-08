@@ -28,7 +28,7 @@ router.post("/", protect, upload.single("image"), async (req, res) => {
     const mediaType = req.file.mimetype;
 
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         contents: [
           {
