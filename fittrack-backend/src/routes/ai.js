@@ -11,23 +11,28 @@ const router = express.Router();
 // ─────────────────────────────────────────────
 async function callGemini(prompt, jsonMode = true) {
   const res = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
     {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.4,
-        maxOutputTokens: 800,
-        ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+        maxOutputTokens: 1000,
       },
     },
     { headers: { 'Content-Type': 'application/json' } }
   );
+
   const text = res.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   if (!jsonMode) return text.trim();
 
   // Strip possible markdown fences
-  const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  const clean = text.replace(/```json\n?|```\n?/g, '').trim();
+  try {
+    return JSON.parse(clean);
+  } catch (e) {
+    console.error('JSON parse failed. Raw response:', text);
+    throw new Error('AI returned invalid JSON');
+  }
 }
 
 // ─────────────────────────────────────────────

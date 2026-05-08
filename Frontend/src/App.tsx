@@ -8,9 +8,8 @@ import { useAppContext } from "./context/AppContext";
 import Login from "./pages/Login";
 import Loading from "./components/ui/Loading";
 import Onboarding from "./pages/Onboarding";
-import AIWorkoutRecommender from "./pages/AIWorkoutRecommender"; // ← NEW
+import AIWorkoutRecommender from "./pages/AIWorkoutRecommender";
 import AICoachChat from "./components/ai/AICoachChat";
- // ← NEW
 import "./index.css";
 import { Toaster } from "react-hot-toast";
 
@@ -26,7 +25,6 @@ const App = () => {
       <Toaster />
 
       <Routes>
-        {/* Login */}
         <Route
           path="/login"
           element={!user ? <Login /> : <Navigate to="/" />}
@@ -42,22 +40,31 @@ const App = () => {
           path="/"
           element={user ? <Layout /> : <Navigate to="/login" />}
         >
-          {!onboardingCompleted ? (
-            <Route index element={<Navigate to="/onboarding" />} />
-          ) : (
-            <>
-              <Route index element={<Dashboard />} />
-              <Route path="food" element={<FoodLog />} />
-              <Route path="activity" element={<ActivityLog />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="ai-workouts" element={<AIWorkoutRecommender />} /> {/* ← NEW */}
-            </>
-          )}
+          <Route
+            index
+            element={
+              onboardingCompleted ? <Dashboard /> : <Navigate to="/onboarding" />
+            }
+          />
+          <Route
+            path="food"
+            element={onboardingCompleted ? <FoodLog /> : <Navigate to="/onboarding" />}
+          />
+          <Route
+            path="activity"
+            element={onboardingCompleted ? <ActivityLog /> : <Navigate to="/onboarding" />}
+          />
+          <Route
+            path="profile"
+            element={onboardingCompleted ? <Profile /> : <Navigate to="/onboarding" />}
+          />
+          <Route
+            path="ai-workouts"
+            element={onboardingCompleted ? <AIWorkoutRecommender /> : <Navigate to="/onboarding" />}
+          />
         </Route>
       </Routes>
 
-      {/* ─── GLOBAL AI COACH CHAT FAB (NEW) ─── */}
-      {/* Shows on all authenticated pages when onboarding is complete */}
       {user && onboardingCompleted && <AICoachChat />}
     </>
   );
